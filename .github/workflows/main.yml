@@ -36,7 +36,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Lance les tests du projet
-      # C'est la même commande que celle qu'on exécute en local
+      # Lance les tests du projet et génère le rapport de couverture (coverage)
+      # Dans votre package.json, "npm test" lance déjà jest avec l'option --coverage
       - name: Run tests
         run: npm test
+
+      # Étape ajoutée pour envoyer le rapport de couverture généré par Jest vers Coveralls
+      # Coveralls va lire le dossier "coverage" et envoyer les résultats au site
+      - name: Coveralls GitHub Action
+        uses: coverallsapp/github-action@v2
+        with:
+          # On lui passe le token GitHub pour qu'il ait le droit de publier les résultats sur vos Pull Requests
+          github-token: ${{ secrets.GITHUB_TOKEN }}
