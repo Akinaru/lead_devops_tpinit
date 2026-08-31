@@ -1,0 +1,42 @@
+# Nom du workflow qui sera affiché dans l'onglet "Actions" de GitHub
+name: Node.js CI
+
+# Définit quand le workflow doit se lancer
+on:
+  # Se lance à chaque fois qu'on push du code sur le repository
+  push:
+
+  # Se lance aussi lorsqu'une Pull Request est créée ou mise à jour
+  pull_request:
+
+# Liste des tâches que GitHub Actions doit exécuter
+jobs:
+
+  # Nom de notre tâche : ici elle sert à lancer les tests
+  test:
+
+    # GitHub va créer une machine virtuelle Ubuntu pour exécuter les commandes
+    runs-on: ubuntu-latest
+
+    # Les différentes étapes exécutées dans l'ordre
+    steps:
+
+      # Récupère le code de notre repository sur la machine virtuelle
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Installe Node.js sur la machine virtuelle
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          # Version de Node.js utilisée pour exécuter notre projet
+          node-version: '20.x'
+
+      # Installe les dépendances définies dans package.json / package-lock.json
+      - name: Install dependencies
+        run: npm ci
+
+      # Lance les tests du projet
+      # C'est la même commande que celle qu'on exécute en local
+      - name: Run tests
+        run: npm test
