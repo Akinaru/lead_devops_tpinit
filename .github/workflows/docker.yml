@@ -28,23 +28,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. On se connecte au GitHub Container Registry (ghcr.io)
+      # 2. Conversion du nom du dépôt en minuscules. 
+      # Docker refuse les majuscules dans le tag des images, or votre pseudo "Akinaru" commence par une majuscule !
+      # On stocke le résultat dans une variable d'environnement (REPO_LC) pour s'en servir plus bas.
+      - name: Convert repository name to lowercase
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
+      # 3. On se connecte au GitHub Container Registry (ghcr.io)
       # On utilise le GITHUB_TOKEN comme mot de passe.
       # L'utilisation de "echo ... | docker login --password-stdin" est plus sécurisée que d'écrire le mot de passe en clair.
       - name: Log in to GitHub Container Registry
         # github.actor sera remplacé automatiquement par votre nom d'utilisateur GitHub lors de l'exécution
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-      # 3. On construit l'image Docker à partir de notre Dockerfile.
-      # L'option "-t" (tag) donne un nom à notre image.
-      # On force le tag "staging" (au lieu de latest par défaut).
-      # Le point "." à la fin indique que le Dockerfile se trouve dans le répertoire courant.
+      # 4. On construit l'image Docker à partir de notre Dockerfile.
+      # On utilise env.REPO_LC (notre variable en minuscules) pour le tag (-t)
+      # Mais on garde github.repository (avec majuscules) pour le label, pour que le lien web GitHub reste parfait.
       - name: Build Docker image
-        # github.repository sera remplacé automatiquement par "votre-pseudo/votre-repo"
-        # On passe le fameux LABEL d'accès en écriture directement dans la commande build, ce qui permet d'utiliser les variables GitHub
-        run: docker build --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" -t ghcr.io/${{ github.repository }}:staging .
+        run: docker build --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" -t ghcr.io/${{ env.REPO_LC }}:staging .
 
-      # 4. On pousse l'image nouvellement construite vers le registre en ligne.
-      # C'est cette commande qui envoie concrètement l'image sur ghcr.io
+      # 5. On pousse l'image nouvellement construite vers le registre en ligne.
       - name: Push Docker image
-        run: docker push ghcr.io/deselikem/express-app-testing-demo:staging
+        run: docker push ghcr.io/${{ env.REPO_LC }}:staging
