@@ -1,0 +1,38 @@
+name: Publish Docker Image (Production)
+
+on:
+  push:
+    # Cette fois-ci, on s'exécute uniquement lors d'un commit (push) sur la branche "main"
+    branches:
+      - main
+
+jobs:
+  build-and-push-prod:
+    runs-on: ubuntu-latest
+    
+    # Permission d'écriture pour envoyer l'image sur le registre
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # On stocke le nom du repo en minuscules pour éviter l'erreur de tag
+      - name: Convert repository name to lowercase
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
+      # On se connecte au GitHub Container Registry (ghcr.io)
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      # On construit l'image Docker
+      # IMPORTANT : Le tag (-t) a été changé de ":staging" à ":production"
+      - name: Build Docker image
+        run: docker build --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" -t ghcr.io/${{ env.REPO_LC }}:production .
+
+      # On pousse l'image nouvellement construite vers le registre en ligne
+      # IMPORTANT : On pousse le tag ":production"
+      - name: Push Docker image
+        run: docker push ghcr.io/${{ env.REPO_LC }}:production
