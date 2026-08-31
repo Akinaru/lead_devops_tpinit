@@ -1,0 +1,47 @@
+# Le nom du workflow, tel qu'il apparaîtra dans l'onglet "Actions" de GitHub
+name: Publish Docker Image
+
+# Le bloc "on" définit QUAND ce workflow doit se déclencher
+on:
+  push:
+    # On précise qu'on veut s'exécuter uniquement lors d'un commit (push) sur la branche "develop"
+    branches:
+      - develop
+
+# Les "jobs" (tâches) que notre workflow va effectuer
+jobs:
+  #Nom de la tâche
+  build-and-push:
+    # On demande à GitHub de lancer ce job sur une machine virtuelle Linux (Ubuntu)
+    runs-on: ubuntu-latest
+    
+    # === SOLUTION DE L'ERREUR DE PERMISSION ===
+    # Par défaut, le GITHUB_TOKEN généré pour l'action ne peut que lire le code.
+    # Pour pousser une image Docker dans l'organisation (GHCR), il lui faut la permission d'écriture.
+    permissions:
+      contents: read
+      packages: write
+
+    # Les différentes étapes (steps) exécutées séquentiellement sur la machine virtuelle
+    steps:
+      # 1. On utilise une Action officielle de GitHub pour télécharger notre code source sur la machine virtuelle
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. On se connecte au GitHub Container Registry (ghcr.io)
+      # On utilise le GITHUB_TOKEN comme mot de passe.
+      # L'utilisation de "echo ... | docker login --password-stdin" est plus sécurisée que d'écrire le mot de passe en clair.
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u deselikem --password-stdin
+
+      # 3. On construit l'image Docker à partir de notre Dockerfile.
+      # L'option "-t" (tag) donne un nom à notre image.
+      # On force le tag "staging" (au lieu de latest par défaut).
+      # Le point "." à la fin indique que le Dockerfile se trouve dans le répertoire courant.
+      - name: Build Docker image
+        run: docker build -t ghcr.io/deselikem/express-app-testing-demo:staging .
+
+      # 4. On pousse l'image nouvellement construite vers le registre en ligne.
+      # C'est cette commande qui envoie concrètement l'image sur ghcr.io
+      - name: Push Docker image
+        run: docker push ghcr.io/deselikem/express-app-testing-demo:staging
