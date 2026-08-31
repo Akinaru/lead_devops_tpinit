@@ -32,14 +32,17 @@ jobs:
       # On utilise le GITHUB_TOKEN comme mot de passe.
       # L'utilisation de "echo ... | docker login --password-stdin" est plus sécurisée que d'écrire le mot de passe en clair.
       - name: Log in to GitHub Container Registry
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u deselikem --password-stdin
+        # github.actor sera remplacé automatiquement par votre nom d'utilisateur GitHub lors de l'exécution
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       # 3. On construit l'image Docker à partir de notre Dockerfile.
       # L'option "-t" (tag) donne un nom à notre image.
       # On force le tag "staging" (au lieu de latest par défaut).
       # Le point "." à la fin indique que le Dockerfile se trouve dans le répertoire courant.
       - name: Build Docker image
-        run: docker build -t ghcr.io/deselikem/express-app-testing-demo:staging .
+        # github.repository sera remplacé automatiquement par "votre-pseudo/votre-repo"
+        # On passe le fameux LABEL d'accès en écriture directement dans la commande build, ce qui permet d'utiliser les variables GitHub
+        run: docker build --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" -t ghcr.io/${{ github.repository }}:staging .
 
       # 4. On pousse l'image nouvellement construite vers le registre en ligne.
       # C'est cette commande qui envoie concrètement l'image sur ghcr.io

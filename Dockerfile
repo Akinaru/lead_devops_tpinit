@@ -20,10 +20,7 @@ RUN npm ci
 # Une fois les dépendances installées, on copie le reste du code de notre projet.
 COPY . .
 
-# === SOLUTION DE L'ERREUR DE PERMISSION (StackOverflow) ===
-# Cette ligne est cruciale : elle lie cette image Docker au repository GitHub.
-# Sans ça, le token (GITHUB_TOKEN) n'a pas les droits pour publier l'image dans l'organisation.
-LABEL org.opencontainers.image.source="https://github.com/deselikem/express-app-testing-demo"
+
 
 # On indique à Docker que l'application écoute sur le port 3000. 
 # C'est informatif, ça aide les développeurs à savoir quel port mapper.
