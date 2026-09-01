@@ -13,6 +13,12 @@
           <a href="<%= zipDownloadUrl %>" class="btn btn-success" target="_blank">
             <i class="glyphicon glyphicon-download-alt"></i> Télécharger le ZIP prêt !
           </a>
+        <% } else if (locals.zipping) { %>
+          <div class="alert alert-info" role="alert">
+            <strong><i class="glyphicon glyphicon-time"></i> Traitement en cours...</strong>
+            <p>Votre demande a été mise dans la file d'attente (Pub/Sub). Un "Worker" est en train de zipper les images en arrière-plan sans bloquer votre page.</p>
+            <p><em>Rafraîchissez cette page dans quelques secondes pour voir le bouton de téléchargement apparaître !</em></p>
+          </div>
         <% } else { %>
           <form action="/zip?tags=<%= tagsParameter %>&tagmode=<%= tagmodeParameter %>" method="POST">
             <button type="submit" class="btn btn-primary">

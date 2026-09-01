@@ -12,10 +12,12 @@ function route(app) {
   app.get('/', async (req, res) => {
     const tags = req.query.tags;
     const tagmode = req.query.tagmode;
+    const zipping = req.query.zipping === 'true'; // Indique si une tâche est en cours en arrière-plan
 
     const ejsLocalVariables = {
       tagsParameter: tags || '',
       tagmodeParameter: tagmode || '',
+      zipping: zipping, // On passe l'info à la vue (pour afficher un message d'attente)
       photos: [],
       searchResults: false,
       invalidParameters: false,
@@ -32,15 +34,17 @@ function route(app) {
     }
 
     // --- ETAPE 5: Récupération du lien du fichier téléchargé ---
-    // Si on a les tags et qu'un fichier zip est enregistré dans la variable globale (le Worker a fini)
+    // PÉDAGOGIE : Quand l'utilisateur rafraîchit la page, on vérifie si notre "Worker"
+    // a fini son travail en arrière-plan. Si oui, il a mis le nom du fichier dans global.zipJobs.
     if (tags && global.zipJobs && global.zipJobs[tags]) {
       try {
         const filename = global.zipJobs[tags];
         const options = {
           action: 'read',
-          // Expire dans 2 jours
-          expires: Date.now() + (2 * 24 * 60 * 60 * 1000)
+          expires: Date.now() + (2 * 24 * 60 * 60 * 1000) // Lien valide pendant 2 jours
         }; 
+        
+        // On demande à Google Cloud Storage un lien de téléchargement "Signé" (sécurisé)
         const [signedUrl] = await storage
          .bucket(process.env.STORAGE_BUCKET || 'ecni22026bucket')
          .file(`public/users/${filename}`)
@@ -48,7 +52,7 @@ function route(app) {
          
         ejsLocalVariables.zipDownloadUrl = signedUrl;
       } catch (error) {
-        console.error("Erreur lors de la génération de l'URL signée:", error);
+        console.error("❌ [Serveur Web] Erreur lors de la génération de l'URL signée:", error);
       }
     }
 
@@ -60,38 +64,42 @@ function route(app) {
         return res.render('index', ejsLocalVariables);
       })
       .catch(error => {
-        console.log('Erreur récupération photos Flickr:', error)
+        console.log('❌ [Serveur Web] Erreur récupération photos Flickr:', error)
         return res.status(500).send({ error });
       });
   });
 
-  // --- ETAPE 2 : LE PRODUCER ---
-  // Nouvel endpoint pour gérer le zippage
+  // --- ETAPE 2 : LE PRODUCER (L'envoyeur de message) ---
   app.post('/zip', async (req, res) => {
     const tags = req.query.tags;
-    const tagmode = req.query.tagmode || 'all'; // On récupère aussi le tagmode
+    const tagmode = req.query.tagmode || 'all'; 
     
     if (!tags) {
       return res.status(400).send('Les tags sont requis pour zipper les résultats.');
     }
 
-    // Le topic est sous la forme ecni2-i. Il faut récupérer le i depuis les variables d'environnement.
-    // Si pas défini, on mettra 0 par défaut pour éviter que ça plante.
     const i = process.env.STUDENT_NUMBER || '0';
     const topicName = `ecni2-${i}`;
 
     try {
-      // On prépare le message (en JSON, converti en Buffer)
+      console.log(`\n======================================================`);
+      console.log(`📨 [Serveur Web - Producer] L'utilisateur a cliqué sur ZIP !`);
+      console.log(`📨 [Serveur Web - Producer] Le serveur web ne va PAS zipper lui-même (ça prendrait trop de temps).`);
+      
       const dataBuffer = Buffer.from(JSON.stringify({ tags: tags }));
       
-      // On publie (publish) le message dans la file d'attente (le Topic)
+      // PÉDAGOGIE : C'est ici toute la magie de l'asynchrone !
+      // On dépose juste un petit "ticket" dans la boîte aux lettres Google (Pub/Sub)
+      // et on répond immédiatement à l'utilisateur, sans attendre que le ZIP soit fini.
       const messageId = await pubsub.topic(topicName).publishMessage({ data: dataBuffer });
-      console.log(`Message ${messageId} envoyé au topic ${topicName} pour les tags : ${tags}`);
+      console.log(`📨 [Serveur Web - Producer] Ticket déposé dans la file d'attente (Topic: ${topicName}). Message ID: ${messageId}`);
+      console.log(`📨 [Serveur Web - Producer] Je réponds immédiatement à l'utilisateur pour ne pas bloquer sa page.`);
+      console.log(`======================================================\n`);
       
-      // On redirige l'utilisateur vers l'accueil (en gardant les paramètres intacts)
-      res.redirect(`/?tags=${tags}&tagmode=${tagmode}`);
+      // On redirige vers l'accueil en ajoutant zipping=true pour afficher un message visuel sympa
+      res.redirect(`/?tags=${tags}&tagmode=${tagmode}&zipping=true`);
     } catch (error) {
-      console.error(`Erreur lors de l'envoi au Pub/Sub :`, error);
+      console.error(`❌ [Serveur Web] Erreur lors de l'envoi au Pub/Sub :`, error);
       res.status(500).send('Erreur lors de la mise en file d\'attente du zippage.');
     }
   });
