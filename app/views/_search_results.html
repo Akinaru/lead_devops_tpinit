@@ -7,41 +7,41 @@
   <div class="panel-body">
 
     <% if (photos.length) { %>
-      <!-- Etape 1 & 5: Bouton de zip OU Lien de téléchargement si le zip est prêt -->
       <div style="margin-bottom: 15px;">
         <% if (locals.zipDownloadUrl) { %>
           <a href="<%= zipDownloadUrl %>" class="btn btn-success" target="_blank">
             <i class="glyphicon glyphicon-download-alt"></i> Télécharger le ZIP prêt !
           </a>
-        <% } else if (locals.zipping) { %>
-          <div class="alert alert-info" role="alert">
-            <strong><i class="glyphicon glyphicon-time"></i> Traitement en cours...</strong>
-            <p>Votre demande a été mise dans la file d'attente (Pub/Sub). Un "Worker" est en train de zipper les images en arrière-plan sans bloquer votre page.</p>
-            <p><em>Rafraîchissez cette page dans quelques secondes pour voir le bouton de téléchargement apparaître !</em></p>
-          </div>
-        <% } else { %>
-          <form action="/zip?tags=<%= tagsParameter %>&tagmode=<%= tagmodeParameter %>" method="POST">
-            <button type="submit" class="btn btn-primary">
-              <i class="glyphicon glyphicon-compressed"></i> Zipper les 10 premières photos
-            </button>
-          </form>
-        <% } %>
+          <% } else if (locals.zipping) { %>
+            <div class="alert alert-info" role="alert">
+              <strong><i class="glyphicon glyphicon-time"></i> Traitement en cours...</strong>
+              <p>Votre demande a été mise dans la file d'attente (Pub/Sub). Un "Worker" est en train de zipper les
+                images en arrière-plan sans bloquer votre page.</p>
+              <p><em>Rafraîchissez cette page dans quelques secondes pour voir le bouton de téléchargement apparaître
+                  !</em></p>
+            </div>
+            <% } else { %>
+              <form action="/zip?tags=<%= tagsParameter %>&tagmode=<%= tagmodeParameter %>" method="POST">
+                <button type="submit" class="btn btn-primary">
+                  <i class="glyphicon glyphicon-compressed"></i> Zipper les 10 premières photos
+                </button>
+              </form>
+              <% } %>
       </div>
 
       <ul>
         <% photos.forEach(function (photo) { %>
           <li class="list-unstyled">
             <a href="<%= photo.media.b %>" class="thumbnail">
-              <img src="<%= photo.media.t %>" alt="Photo - <%= photo.title %>"
-                title="<%= photo.title %>">
+              <img src="<%= photo.media.t %>" alt="Photo - <%= photo.title %>" title="<%= photo.title %>">
             </a>
           </li>
-        <% }) %>
+          <% }) %>
       </ul>
 
-    <% } else { %>
-      <div class="alert alert-info"><strong>No results</strong></div>
-    <% } %>
+      <% } else { %>
+        <div class="alert alert-info"><strong>No results</strong></div>
+        <% } %>
 
   </div>
 
