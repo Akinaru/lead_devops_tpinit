@@ -32,12 +32,15 @@ function route(app) {
       return res.render('index', ejsLocalVariables);
     }
 
-    if (tags && global.zipJobs && global.zipJobs[tags]) {
+    // PÉDAGOGIE : Quand l'utilisateur rafraîchit la page, on vérifie si notre "Worker"
+    // a fini son travail en arrière-plan. Si oui, il a mis le nom du fichier dans global.readyZips.
+    if (tags && global.readyZips && global.readyZips[tags]) {
       try {
-        const filename = global.zipJobs[tags];
+        const filename = global.readyZips[tags];
         const options = {
           action: 'read',
-          expires: Date.now() + (2 * 24 * 60 * 60 * 1000) // Lien valide pendant 2 jours
+          //expires: Date.now() + (2 * 24 * 60 * 60 * 1000) // Lien valide pendant 2 jours
+          expires: Date.now() + (2 * 60 * 60 + 10) // Lien valide pendant 2 jours
         };
 
         const [signedUrl] = await storage
