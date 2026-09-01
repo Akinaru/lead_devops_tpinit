@@ -7,13 +7,19 @@
   <div class="panel-body">
 
     <% if (photos.length) { %>
-      <!-- Etape 1: Bouton pour déclencher le zippage en appelant POST /zip avec les tags en query params -->
+      <!-- Etape 1 & 5: Bouton de zip OU Lien de téléchargement si le zip est prêt -->
       <div style="margin-bottom: 15px;">
-        <form action="/zip?tags=<%= tagsParameter %>&tagmode=<%= tagmodeParameter %>" method="POST">
-          <button type="submit" class="btn btn-primary">
-            <i class="glyphicon glyphicon-compressed"></i> Zipper les 10 premières photos
-          </button>
-        </form>
+        <% if (locals.zipDownloadUrl) { %>
+          <a href="<%= zipDownloadUrl %>" class="btn btn-success" target="_blank">
+            <i class="glyphicon glyphicon-download-alt"></i> Télécharger le ZIP prêt !
+          </a>
+        <% } else { %>
+          <form action="/zip?tags=<%= tagsParameter %>&tagmode=<%= tagmodeParameter %>" method="POST">
+            <button type="submit" class="btn btn-primary">
+              <i class="glyphicon glyphicon-compressed"></i> Zipper les 10 premières photos
+            </button>
+          </form>
+        <% } %>
       </div>
 
       <ul>

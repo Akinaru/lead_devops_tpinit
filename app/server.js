@@ -23,4 +23,8 @@ const port = process.env.PORT || 3005;
 app.server = app.listen(port);
 console.log(`listening on port ${port}`);
 
+// --- ETAPE 3: Démarrage du Worker ---
+// On importe le worker pour qu'il commence à écouter les messages dès le lancement du serveur
+require('./worker');
+
 module.exports = app;
