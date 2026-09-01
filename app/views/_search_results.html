@@ -7,6 +7,14 @@
   <div class="panel-body">
 
     <% if (photos.length) { %>
+      <!-- Etape 1: Bouton pour déclencher le zippage en appelant POST /zip avec les tags en query params -->
+      <div style="margin-bottom: 15px;">
+        <form action="/zip?tags=<%= tagsParameter %>&tagmode=<%= tagmodeParameter %>" method="POST">
+          <button type="submit" class="btn btn-primary">
+            <i class="glyphicon glyphicon-compressed"></i> Zipper les 10 premières photos
+          </button>
+        </form>
+      </div>
 
       <ul>
         <% photos.forEach(function (photo) { %>
