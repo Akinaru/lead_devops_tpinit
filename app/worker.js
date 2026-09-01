@@ -21,12 +21,6 @@ async function processMessage(message) {
   const top10Photos = photos.slice(0, 10);
 
   const archive = archiver('zip', { zlib: { level: 9 } });
-  archive.on("entry", function (err) {
-    //console.log(`📦 [Worker - Consumer] Ajout d'une entrée dans l'archive ZIP pour les tags: ${tags}`, err);
-  });
-  archive.on("data", function (chunk) {
-    console.log(`📦 [Worker - Consumer] Données de l'archive ZIP pour les tags: ${tags}`, chunk.length);
-  });
 
   const filename = `zip_${Date.now()}_${Math.floor(Math.random() * 1000)}.zip`;
   const file = storage.bucket(bucketName).file(`public/users/${filename}`);
@@ -34,9 +28,6 @@ async function processMessage(message) {
   const stream = file.createWriteStream({
     metadata: { contentType: 'application/zip', cacheControl: 'private' },
     resumable: false
-  });
-  stream.on('pipe', (err) => {
-    //console.log(`📦 [Worker - Consumer] Début de l'écriture du fichier ZIP pour les tags: ${tags}`, err);
   });
 
   archive.pipe(stream);
@@ -48,7 +39,6 @@ async function processMessage(message) {
 
   for (let index = 0; index < top10Photos.length; index++) {
     const photoUrl = top10Photos[index].media.b;
-
 
     const response = await axios({
       method: 'GET',
@@ -62,8 +52,6 @@ async function processMessage(message) {
   }
 
   archive.finalize();
-
-
 }
 
 function listen() {
