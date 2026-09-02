@@ -21,6 +21,7 @@ async function middleware(req, res, next) {
     const state = rawState ? JSON.parse(rawState) : { tokens: 15, lastRefill: now };
     
     let currentTokens = Math.min(15, state.tokens + ((now - state.lastRefill) / 1000));
+    console.log(`[RateLimiter] IP: ${ip} | Tokens dispos: ${currentTokens.toFixed(2)} | Cost: 3`);
 
     if (currentTokens >= 3) {
       await client.set(`rate_limit:${ip}`, JSON.stringify({ tokens: currentTokens - 3, lastRefill: now }));
