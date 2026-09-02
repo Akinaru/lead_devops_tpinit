@@ -1,10 +1,9 @@
 const { PubSub } = require('@google-cloud/pubsub');
 const { Storage } = require('@google-cloud/storage');
+const { db } = require('./firebase');
 const axios = require('axios');
 const archiver = require('archiver');
 const photoModel = require('./photo_model');
-
-global.readyZips = global.readyZips || {};
 
 const pubsub = new PubSub({ projectId: 'ecni2-2026' });
 const storage = new Storage();
@@ -32,23 +31,29 @@ async function processMessage(message) {
 
   archive.pipe(stream);
 
-  stream.on('finish', () => {
-    global.readyZips[tags] = filename;
+  stream.on('finish', async () => {
+    const firstname = process.env.FIRSTNAME || 'maxime';
+    const timeOfZipping = Date.now();
+    
+    await db.ref(`/${firstname}/${timeOfZipping}`).set({
+      filename: filename,
+      tags: tags
+    });
+    
     message.ack();
   });
 
   for (let index = 0; index < top10Photos.length; index++) {
-    const photoUrl = top10Photos[index].media.b;
-
-    const response = await axios({
-      method: 'GET',
-      url: photoUrl,
-      responseType: 'stream',
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
-    });
-
-    archive.append(response.data, { name: `photo_${index}.jpg` });
-
+    const photoUrl = top10Photos[index].media.m;
+    try {
+      const response = await axios({
+        method: 'GET',
+        url: photoUrl,
+        responseType: 'stream',
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
+      });
+      archive.append(response.data, { name: `photo_${index}.jpg` });
+    } catch(e) {}
   }
 
   archive.finalize();

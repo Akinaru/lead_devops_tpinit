@@ -1,0 +1,45 @@
+<%- include("_header.html") -%>
+
+<div class="container">
+  
+  <div style="margin-top: 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+    <h2>Historique de vos zips</h2>
+    <a href="/" class="btn btn-default">Retour à l'accueil</a>
+  </div>
+
+  <% if (historyList.length === 0) { %>
+    <div class="alert alert-info">Aucun historique de zippage trouvé dans Firebase.</div>
+  <% } else { %>
+    <table class="table table-striped table-bordered">
+      <thead>
+        <tr>
+          <th>Date de création</th>
+          <th>Tags recherchés</th>
+          <th>Nom du fichier sur le cloud</th>
+          <th>Téléchargement</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% historyList.forEach(function(item) { %>
+          <tr>
+            <td><%= item.date %></td>
+            <td><span class="label label-primary"><%= item.tags %></span></td>
+            <td><code><%= item.filename %></code></td>
+            <td>
+              <% if (item.url) { %>
+                <a href="<%= item.url %>" target="_blank" class="btn btn-success btn-xs">
+                  <i class="glyphicon glyphicon-download-alt"></i> Télécharger
+                </a>
+              <% } else { %>
+                <span class="text-danger">Indisponible</span>
+              <% } %>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+
+</div>
+
+<%- include("_footer.html") -%>
