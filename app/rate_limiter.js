@@ -1,39 +1,37 @@
-const rateLimitMap = new Map();
+const { createClient } = require('redis');
 
-function tokenBucketMiddleware(req, res, next) {
+const client = createClient({
+  username: process.env.REDIS_USER,
+  password: process.env.REDIS_PASSWORD,
+  socket: {
+    host: process.env.REDIS_HOST,
+    port: parseInt(process.env.REDIS_PORT)
+  }
+});
+
+client.on('error', () => {});
+client.connect().catch(() => {});
+
+async function middleware(req, res, next) {
   const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
-
-  const REFILL_RATE = 1;
-  const MAX_TOKENS = 15;
-  const COST = 3;
-
   const now = Date.now();
 
-  if (!rateLimitMap.has(ip)) {
-    rateLimitMap.set(ip, { tokens: MAX_TOKENS, lastRefill: now });
-  }
+  try {
+    const rawState = await client.get(`rate_limit:${ip}`);
+    const state = rawState ? JSON.parse(rawState) : { tokens: 15, lastRefill: now };
+    
+    let currentTokens = Math.min(15, state.tokens + ((now - state.lastRefill) / 1000));
 
-  const state = rateLimitMap.get(ip);
-  const secondsElapsed = (now - state.lastRefill) / 1000;
-
-  let currentTokens = state.tokens + (secondsElapsed * REFILL_RATE);
-  if (currentTokens > MAX_TOKENS) {
-    currentTokens = MAX_TOKENS;
-  }
-
-  if (currentTokens >= COST) {
-    rateLimitMap.set(ip, {
-      tokens: currentTokens - COST,
-      lastRefill: now
-    });
+    if (currentTokens >= 3) {
+      await client.set(`rate_limit:${ip}`, JSON.stringify({ tokens: currentTokens - 3, lastRefill: now }));
+      next();
+    } else {
+      await client.set(`rate_limit:${ip}`, JSON.stringify({ tokens: currentTokens, lastRefill: now }));
+      res.status(429).send("Too Many Requests");
+    }
+  } catch (error) {
     next();
-  } else {
-    rateLimitMap.set(ip, {
-      tokens: currentTokens,
-      lastRefill: now
-    });
-    res.status(429).send("Too Many Requests: Vous avez dépassé votre quota de requêtes. Veuillez patienter.");
   }
 }
 
-module.exports = tokenBucketMiddleware;
+module.exports = { middleware, client };
