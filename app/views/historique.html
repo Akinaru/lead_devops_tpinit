@@ -7,39 +7,90 @@
     <a href="/" class="btn btn-default">Retour à l'accueil</a>
   </div>
 
-  <% if (historyList.length === 0) { %>
-    <div class="alert alert-info">Aucun historique de zippage trouvé dans Firebase.</div>
-  <% } else { %>
-    <table class="table table-striped table-bordered">
+  <div id="loading" style="text-align: center; margin: 50px 0;">
+    <p>Chargement des dossiers en cours...</p>
+  </div>
+
+  <div id="folders-container" style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;"></div>
+
+  <div id="user-details" style="display: none; border: 1px solid #ddd; padding: 20px; border-radius: 5px; background: #f9f9f9;">
+    <h3 id="current-folder-title"></h3>
+    <button class="btn btn-sm btn-default" onclick="closeFolder()" style="margin-bottom: 15px;">🔙 Retour aux dossiers</button>
+    <div id="folder-loading" style="display:none;">Chargement des fichiers...</div>
+    <table class="table table-striped table-bordered" id="folder-table" style="display:none;">
       <thead>
         <tr>
           <th>Date de création</th>
           <th>Tags recherchés</th>
-          <th>Nom du fichier sur le cloud</th>
+          <th>Nom du fichier</th>
           <th>Téléchargement</th>
         </tr>
       </thead>
-      <tbody>
-        <% historyList.forEach(function(item) { %>
-          <tr>
-            <td><%= item.date %></td>
-            <td><span class="label label-primary"><%= item.tags %></span></td>
-            <td><code><%= item.filename %></code></td>
-            <td>
-              <% if (item.url) { %>
-                <a href="<%= item.url %>" target="_blank" class="btn btn-success btn-xs">
-                  <i class="glyphicon glyphicon-download-alt"></i> Télécharger
-                </a>
-              <% } else { %>
-                <span class="text-danger">Indisponible</span>
-              <% } %>
-            </td>
-          </tr>
-        <% }); %>
-      </tbody>
+      <tbody id="folder-tbody"></tbody>
     </table>
-  <% } %>
+  </div>
 
 </div>
+
+<script>
+  // Charger la liste des dossiers
+  fetch('/api/users')
+    .then(res => res.json())
+    .then(users => {
+      document.getElementById('loading').style.display = 'none';
+      const container = document.getElementById('folders-container');
+      if (users.length === 0) {
+        container.innerHTML = '<div class="alert alert-info">Aucun dossier trouvé dans Firebase.</div>';
+        return;
+      }
+      
+      users.forEach(user => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary btn-lg';
+        btn.style.width = '150px';
+        btn.innerHTML = `📁 ${user}`;
+        btn.onclick = () => openFolder(user);
+        container.appendChild(btn);
+      });
+    });
+
+  function openFolder(user) {
+    document.getElementById('folders-container').style.display = 'none';
+    document.getElementById('user-details').style.display = 'block';
+    document.getElementById('current-folder-title').innerText = `Dossier : ${user}`;
+    document.getElementById('folder-loading').style.display = 'block';
+    document.getElementById('folder-table').style.display = 'none';
+
+    fetch(`/api/users/${user}`)
+      .then(res => res.json())
+      .then(jobs => {
+        document.getElementById('folder-loading').style.display = 'none';
+        const tbody = document.getElementById('folder-tbody');
+        tbody.innerHTML = '';
+        
+        if (jobs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" class="text-center">Aucun fichier valide dans ce dossier.</td></tr>';
+        } else {
+          jobs.forEach(job => {
+            const tr = document.createElement('tr');
+            let downloadLink = job.url ? `<a href="${job.url}" target="_blank" class="btn btn-success btn-xs"><i class="glyphicon glyphicon-download-alt"></i> Télécharger</a>` : '<span class="text-danger">Indisponible</span>';
+            tr.innerHTML = `
+              <td>${job.dateStr}</td>
+              <td><span class="label label-primary">${job.tags}</span></td>
+              <td><code>${job.filename}</code></td>
+              <td>${downloadLink}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+        document.getElementById('folder-table').style.display = 'table';
+      });
+  }
+
+  function closeFolder() {
+    document.getElementById('user-details').style.display = 'none';
+    document.getElementById('folders-container').style.display = 'flex';
+  }
+</script>
 
 <%- include("_footer.html") -%>
